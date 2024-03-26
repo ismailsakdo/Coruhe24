@@ -39,4 +39,8 @@ function fetchWeatherData() {
   sheet.getRange(lastRow, 3).setValue(weatherData.main.humidity);
   sheet.getRange(lastRow, 4).setValue(weatherData.main.pressure);
   sheet.getRange(lastRow, 5).setValue(uvData.value);
+
+  // Combine latitude and longitude into a single column
+  var latLong = weatherData.coord.lat + "," + weatherData.coord.lon;
+  sheet.getRange(lastRow, 6).setValue(latLong);
 }
