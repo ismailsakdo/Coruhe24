@@ -1,6 +1,26 @@
 #include "Adafruit_PM25AQI.h"
 #include <Adafruit_Sensor.h>
 #include "DHT.h"
+#include <WiFi.h>
+#include "ThingSpeak.h"
+
+#define SECRET_SSID "MySSID"    // replace MySSID with your WiFi network name
+#define SECRET_PASS "MyPassword"  // replace MyPassword with your WiFi password
+
+#define SECRET_CH_ID 000000     
+#define SECRET_WRITE_APIKEY "XYZ" 
+
+//Thingspeak
+char ssid[] = SECRET_SSID;   // your network SSID (name) 
+char pass[] = SECRET_PASS;   // your network password
+int keyIndex = 0;            // your network key Index number (needed only for WEP)
+WiFiClient  client;
+
+unsigned long myChannelNumber = SECRET_CH_ID;
+const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
+
+// Initialize our values
+String myStatus = "";
 
 #include <SoftwareSerial.h>
 SoftwareSerial pmSerial(16, 17);
@@ -30,6 +50,10 @@ void setup() {
   
   // DHT
   dht.begin();
+
+  //internet
+  WiFi.mode(WIFI_STA);   
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
 }
 
 void loop() {
@@ -82,4 +106,37 @@ void loop() {
   Serial.print(" Temperature: ");
   Serial.println(temp);
   delay(1000);
+
+  //Internet
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(SECRET_SSID);
+    while(WiFi.status() != WL_CONNECTED){
+      WiFi.begin(ssid, pass);  // Connect to WPA/WPA2 network. Change this line if using open or WEP network
+      Serial.print(".");
+      delay(5000);     
+    } 
+    Serial.println("\nConnected.");
+  }
+
+  // set the fields with the values
+  ThingSpeak.setField(1, pm1std);
+  ThingSpeak.setField(2, pm25std);
+  ThingSpeak.setField(3, pm10std);
+  ThingSpeak.setField(4, temp);
+  ThingSpeak.setField(5, humid);
+
+  // set the status
+  ThingSpeak.setStatus(myStatus);
+  
+  // write to the ThingSpeak channel
+  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+  if(x == 200){
+    Serial.println("Channel update successful.");
+  }
+  else{
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
+  
+  delay(14000);
 }
